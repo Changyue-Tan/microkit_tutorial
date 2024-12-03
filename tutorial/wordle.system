@@ -1,20 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <system>
-    <!-- Define your system here -->
-    <memory_region name="rtc" size="0x1000" phys_addr="0x9000000" />
+    <!-- virtual memory space for uart driver  -->
+    <memory_region name="uart_memory" size="0x1000" phys_addr="0x9000000" />
+    
+    <!-- buffer space for communication between client and server  -->
+    <memory_region name="input_buffer_memory" size="0x1000" />
+    <memory_region name="output_buffer_memory" size="0x1000" />
 
+    <!-- protection domain of server -->
     <protection_domain name="serial_server" priority="1">
         <program_image path="serial_server.elf" />
-        <map mr="rtc" vaddr="0x4000000" perms="rw" cached="false"
-            setvar_vaddr="uart_base_vaddr" />
-        <irq id="0" irq="33"/>
+
+        <!-- allow this PD to access uart driver -->
+        <map mr="uart_memory" vaddr="0x4000000" perms="rw" cached="false" setvar_vaddr="uart_base_vaddr" />
+        <irq id="0" irq="33"/> 
+
+        <!-- allow this PD to access communication buffer -->
+        <map mr="input_buffer_memory" vaddr="0x5000000" perms="rw" setvar_vaddr="input_buffer" />
+        <map mr="output_buffer_memory" vaddr="0x6000000" perms="rw" setvar_vaddr="output_buffer" />
     </protection_domain>
 
+    <!-- protection domain of client -->
     <protection_domain name="client" priority="0">
         <program_image path="client.elf" />
+        <!-- allow this PD to access communication buffer -->
+        <map mr="input_buffer_memory" vaddr="0x5000000" perms="r" setvar_vaddr="input_buffer"/>
+        <map mr="output_buffer_memory" vaddr="0x6000000" perms="rw" setvar_vaddr="output_buffer" />
     </protection_domain>
 
+    <!-- channel for client server communication -->
     <channel>
         <end pd="serial_server" id="1"/>
         <end pd="client" id="2"/>

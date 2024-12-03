@@ -5,7 +5,13 @@
 // This variable will have the address of the UART device
 uintptr_t uart_base_vaddr;
 
-#define RECEIVER_CHANNEL_ID 1
+char *input_buffer; // handle user input
+
+char *output_buffer; // display game state
+
+#define CLIENT_CHANNEL_ID 1
+
+#define UART_CHANNEL_ID 0 // channel id = irq id = 0
 
 #define RHR_MASK 0b111111111
 #define UARTDR 0x000
@@ -59,12 +65,27 @@ void init(void) {
     // After initialising the UART, print a message to the terminal
     // saying that the serial server has started.
     uart_put_str("SERIAL SERVER: starting\n");
-    microkit_notify(RECEIVER_CHANNEL_ID);
+    // microkit_notify(CLIENT_CHANNEL_ID);
 }
 
 void notified(microkit_channel channel) {
-    int input = uart_get_char();
-    uart_put_char(input);
-    uart_handle_irq();
-    microkit_irq_ack(channel);
+    switch (channel) {
+        case UART_CHANNEL_ID: // something was inputed via keyboard
+            char input = uart_get_char();
+            // uart_put_char(input);
+
+            input_buffer[0] = input; // write input char to input buffer
+            microkit_notify(CLIENT_CHANNEL_ID); // tell the clinet to display the char
+
+            uart_handle_irq();
+            microkit_irq_ack(channel);
+            break;
+        case CLIENT_CHANNEL_ID: // clients wants to display something
+            uart_put_str(output_buffer);
+            // refresh the buffer
+            for (int i = 0; output_buffer[i] != '\0'; i++) {
+                output_buffer[i] = '\0';
+            }
+            break;
+    }
 }

@@ -9,7 +9,11 @@
 
 #define INVALID_CHAR (-1)
 
-#define SENDER_CHANNEL_ID 2
+#define SERVER_CHANNEL_ID 2
+
+char *input_buffer; // handle user input
+
+char *output_buffer; // display game state
 
 struct wordle_char {
     int ch;
@@ -32,6 +36,11 @@ void wordle_server_send() {
 
 void serial_send(char *str) {
     // Implement this function to get the serial server to print the string.
+    for (int i = 0; str[i] != '\0'; i++) {
+        output_buffer[i] = str[i];
+    }
+    // printf("HEY!");
+    microkit_notify(SERVER_CHANNEL_ID); // tell serial server that buffer is ready   
 }
 
 // This function prints a CLI Wordle using pretty colours for what characters
@@ -117,16 +126,20 @@ void init(void) {
     serial_send("Welcome to the Wordle client!\n");
 
     init_table();
+
     // Don't want to clear the terminal yet since this is the first time
     // we are printing it (we want to clear just the Wordle table, not
     // everything on the terminal).
+
     print_table(false);
 }
 
 void notified(microkit_channel channel) {
     switch (channel) {
-        case SENDER_CHANNEL_ID:
-            microkit_dbg_puts("Received message from sender!\n");
+        case SERVER_CHANNEL_ID:
+            // microkit_dbg_puts("Received message from server!\n");
+            add_char_to_table(input_buffer[0]);
+            print_table(true);
     }
 
 }
