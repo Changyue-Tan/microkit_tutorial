@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<system>
+    <!-- Define your system here -->
+    <memory_region name="rtc" size="0x1000" phys_addr="0x9000000" />
+
+    <protection_domain name="serial_server" priority="1">
+        <program_image path="serial_server.elf" />
+        <map mr="rtc" vaddr="0x4000000" perms="rw" cached="false"
+            setvar_vaddr="uart_base_vaddr" />
+        <irq id="0" irq="33"/>
+    </protection_domain>
+
+    <protection_domain name="client" priority="0">
+        <program_image path="client.elf" />
+    </protection_domain>
+
+    <channel>
+        <end pd="serial_server" id="1"/>
+        <end pd="client" id="2"/>
+    </channel>
+
+</system>
+
+    <!-- 
+    
+
+    
+    -->
