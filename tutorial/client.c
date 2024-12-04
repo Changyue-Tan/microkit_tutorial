@@ -9,10 +9,12 @@
 
 #define INVALID_CHAR (-1)
 
-#define SERVER_CHANNEL_ID 2
+#define CHANNEL_TO_SERIAL_SERVER 2
+#define CHANNEL_TO_WORDLE_SERVER 4
+
+#define WORDLE_WORD_SIZE 5
 
 char *input_buffer; // handle user input
-
 char *output_buffer; // display game state
 
 struct wordle_char {
@@ -32,6 +34,18 @@ void wordle_server_send() {
     // After doing the PPC, the Wordle server should have updated
     // the message-registers containing the state of each character.
     // Look at the message registers and update the `table` accordingly.
+
+    microkit_msginfo message_structure_to_be_passed = microkit_msginfo_new(0, WORDLE_WORD_SIZE);
+    // put word entered by user into message registers
+    for (int i = 0; i < WORDLE_WORD_SIZE; i++) {
+        microkit_mr_set(i, table[curr_row][i].ch);
+    }
+    // call worldle server's protected procedure and get return message
+    microkit_msginfo message_structure_returned_from_PP = microkit_ppcall(CHANNEL_TO_WORDLE_SERVER, message_structure_to_be_passed);
+    // update the table with character states
+    for (int i = 0; i < WORDLE_WORD_SIZE; i++) {
+        table[curr_row][i].state = microkit_mr_get(i);
+    }
 }
 
 void serial_send(char *str) {
@@ -40,7 +54,7 @@ void serial_send(char *str) {
         output_buffer[i] = str[i];
     }
     // printf("HEY!");
-    microkit_notify(SERVER_CHANNEL_ID); // tell serial server that buffer is ready   
+    microkit_notify(CHANNEL_TO_SERIAL_SERVER); // tell serial server that buffer is ready   
 }
 
 // This function prints a CLI Wordle using pretty colours for what characters
@@ -60,6 +74,7 @@ void print_table(bool clear_terminal) {
             serial_send("[");
             enum character_state state = table[row][letter].state;
             int ch = table[row][letter].ch;
+            // printf("state of %c is %d\n", ch, state);
             if (ch != INVALID_CHAR) {
                 switch (state) {
                     case INCORRECT: break;
@@ -136,7 +151,7 @@ void init(void) {
 
 void notified(microkit_channel channel) {
     switch (channel) {
-        case SERVER_CHANNEL_ID:
+        case CHANNEL_TO_SERIAL_SERVER:
             // microkit_dbg_puts("Received message from server!\n");
             add_char_to_table(input_buffer[0]);
             print_table(true);

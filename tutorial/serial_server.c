@@ -6,10 +6,9 @@
 uintptr_t uart_base_vaddr;
 
 char *input_buffer; // handle user input
-
 char *output_buffer; // display game state
 
-#define CLIENT_CHANNEL_ID 1
+#define CHANNEL_TO_CLIENT 1
 
 #define UART_CHANNEL_ID 0 // channel id = irq id = 0
 
@@ -75,12 +74,12 @@ void notified(microkit_channel channel) {
             // uart_put_char(input);
 
             input_buffer[0] = input; // write input char to input buffer
-            microkit_notify(CLIENT_CHANNEL_ID); // tell the clinet to display the char
+            microkit_notify(CHANNEL_TO_CLIENT); // tell the clinet to display the char
 
             uart_handle_irq();
             microkit_irq_ack(channel);
             break;
-        case CLIENT_CHANNEL_ID: // clients wants to display something
+        case CHANNEL_TO_CLIENT: // clients wants to display something
             uart_put_str(output_buffer);
             // refresh the buffer
             for (int i = 0; output_buffer[i] != '\0'; i++) {
