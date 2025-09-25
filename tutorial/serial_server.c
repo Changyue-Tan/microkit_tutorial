@@ -1,13 +1,16 @@
 #include <microkit.h>
 #include <stdint.h>
-
+#include <string.h>
 #include "printf.h"
 
 // This variable will have the address of the UART device
 uintptr_t uart_base_vaddr;
+char *input_buffer_base_vaddr;
+char *output_buffer_base_vaddr;
 
 // This Channel is where sel4 will send notification to upon receiving irq 33
 #define UART_CHANNEL_ID 0 
+#define CHANNEL_WITH_CLIENT_ID 1
 
 #define RHR_MASK          0b111111111
 #define UARTDR            0x000
@@ -75,10 +78,20 @@ void notified(microkit_channel channel) {
 	switch (channel) {
         case UART_CHANNEL_ID: // iqr 33 (UART)
             char input = uart_get_char();
-            uart_put_char(input);
+            // uart_put_char(input);
+
+            input_buffer_base_vaddr[0] = input; // write input char to input buffer
+            microkit_notify(CHANNEL_WITH_CLIENT_ID); // tell the clinet to display the char
 
             uart_handle_irq();
             microkit_irq_ack(channel);
+			break;
+		case CHANNEL_WITH_CLIENT_ID: // Client has something for Server to send to UART
+			uart_put_str(output_buffer_base_vaddr);
+            // refresh the buffer
+			for (int i = 0; output_buffer_base_vaddr[i] != '\0'; i++) {
+                output_buffer_base_vaddr[i] = '\0';
+            }
             break;
         default:
             break;

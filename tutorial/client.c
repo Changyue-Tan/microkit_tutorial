@@ -1,6 +1,7 @@
 #include <microkit.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "printf.h"
 #include "wordle.h"
@@ -12,6 +13,11 @@
 #define DEFAULT_COLOUR              "\033[0m"
 
 #define INVALID_CHAR (-1)
+
+#define CHANNEL_WITH_SERVER_ID 1
+
+char *input_buffer_base_vaddr;
+char *output_buffer_base_vaddr;
 
 struct wordle_char {
 	int ch;
@@ -34,6 +40,11 @@ void wordle_server_send() {
 
 void serial_send(char *str) {
 	// Implement this function to get the serial server to print the string.
+	for (int i = 0; str[i] != '\0'; i++) {
+		output_buffer_base_vaddr[i] = str[i];
+	}
+	microkit_notify(
+	    CHANNEL_WITH_SERVER_ID);  // tell serial server that buffer is ready
 }
 
 // This function prints a CLI Wordle using pretty colours for what characters
@@ -127,4 +138,10 @@ void init(void) {
 	print_table(false);
 }
 
-void notified(microkit_channel channel) {}
+void notified(microkit_channel channel) {
+	switch (channel) {
+		case CHANNEL_WITH_SERVER_ID:
+			add_char_to_table(*input_buffer_base_vaddr);
+			print_table(true);
+	}
+}
