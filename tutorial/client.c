@@ -14,7 +14,10 @@
 
 #define INVALID_CHAR (-1)
 
-#define CHANNEL_WITH_SERVER_ID 1
+#define CHANNEL_WITH_SERIAL_SERVER_ID 1
+#define CHANNEL_WITH_WORDLE_SERVER_ID 2
+
+#define WORDLE_WORD_SIZE 5
 
 char *input_buffer_base_vaddr;
 char *output_buffer_base_vaddr;
@@ -36,6 +39,18 @@ void wordle_server_send() {
 	// After doing the PPC, the Wordle server should have updated
 	// the message-registers containing the state of each character.
 	// Look at the message registers and update the `table` accordingly.
+
+	microkit_msginfo message_structure_to_be_passed = microkit_msginfo_new(0, WORDLE_WORD_SIZE);
+    // put word entered by user into message registers
+    for (int i = 0; i < WORDLE_WORD_SIZE; i++) {
+        microkit_mr_set(i, table[curr_row][i].ch);
+    }
+    // call worldle server's protected procedure and get return message
+    microkit_msginfo message_structure_returned_from_PP = microkit_ppcall(CHANNEL_WITH_WORDLE_SERVER_ID, message_structure_to_be_passed);
+    // update the table with character states
+    for (int i = 0; i < WORDLE_WORD_SIZE; i++) {
+        table[curr_row][i].state = microkit_mr_get(i);
+    }
 }
 
 void serial_send(char *str) {
@@ -44,7 +59,7 @@ void serial_send(char *str) {
 		output_buffer_base_vaddr[i] = str[i];
 	}
 	microkit_notify(
-	    CHANNEL_WITH_SERVER_ID);  // tell serial server that buffer is ready
+	    CHANNEL_WITH_SERIAL_SERVER_ID);  // tell serial server that buffer is ready
 }
 
 // This function prints a CLI Wordle using pretty colours for what characters
@@ -140,7 +155,7 @@ void init(void) {
 
 void notified(microkit_channel channel) {
 	switch (channel) {
-		case CHANNEL_WITH_SERVER_ID:
+		case CHANNEL_WITH_SERIAL_SERVER_ID:
 			add_char_to_table(*input_buffer_base_vaddr);
 			print_table(true);
 	}

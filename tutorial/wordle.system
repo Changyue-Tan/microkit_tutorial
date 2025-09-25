@@ -23,7 +23,7 @@
         <map mr="output_buffer" vaddr="0x6000000" perms="rw" setvar_vaddr="output_buffer_base_vaddr" />
     </protection_domain>
 
-    <!-- protection domain of client -->
+    <!-- protection domain of client (pp = true for part 3)-->
     <protection_domain name="client" priority="0">
         <program_image path="client.elf" />
 
@@ -36,6 +36,19 @@
     <channel>
         <end pd="serial_server" id="1"/>
         <end pd="client" id="1"/>
+    </channel>
+
+    <!-- part 3 -->
+
+    <!-- protection domain of wordle_server -->
+    <protection_domain name="wordle_server" priority="2">
+        <program_image path="wordle_server.elf" />
+    </protection_domain>
+
+    <!-- channel for client wordle_server communication -->
+    <channel>
+        <end pd="wordle_server" id="2"/>
+        <end pd="client" id="2"  pp="true"/>
     </channel>
 </system>
 
