@@ -6,6 +6,9 @@
 // This variable will have the address of the UART device
 uintptr_t uart_base_vaddr;
 
+// This Channel is where sel4 will send notification to upon receiving irq 33
+#define UART_CHANNEL_ID 0 
+
 #define RHR_MASK          0b111111111
 #define UARTDR            0x000
 #define UARTFR            0x018
@@ -68,4 +71,16 @@ void init(void) {
 	uart_put_str("SERIAL SERVER: starting\n");
 }
 
-void notified(microkit_channel channel) {}
+void notified(microkit_channel channel) {
+	switch (channel) {
+        case UART_CHANNEL_ID: // iqr 33 (UART)
+            char input = uart_get_char();
+            uart_put_char(input);
+
+            uart_handle_irq();
+            microkit_irq_ack(channel);
+            break;
+        default:
+            break;
+    }
+}
