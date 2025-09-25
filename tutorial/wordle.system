@@ -41,7 +41,7 @@
     <!-- part 3 -->
 
     <!-- protection domain of wordle_server -->
-    <protection_domain name="wordle_server" priority="2">
+    <protection_domain name="wordle_server" priority="254">
         <program_image path="wordle_server.elf" />
     </protection_domain>
 
@@ -96,10 +96,9 @@
         <irq irq="79" id="2" trigger="edge" />
     </protection_domain>
 
-
     <channel>
     <!-- The VMM code expects the channel ID to be 1. -->
-    <end pd="vmm" id="1" />
+    <end pd="vmm" id="1" pp="true"/>
     <end pd="wordle_server" id="2" />
     </channel>
 
